@@ -1,0 +1,9 @@
+.env
+credentials.json
+token.json
+test/
+Cloud Functions/
+generated_reports/
+__pycache__/
+temp_images/
+context.txt
