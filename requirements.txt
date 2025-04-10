@@ -8,4 +8,5 @@ PyMuPDF
 transformers 
 torch 
 huggingface_hub 
-accelerate 
+accelerate
+docxtpl
