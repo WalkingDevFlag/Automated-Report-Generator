@@ -26,6 +26,7 @@ from docx.opc.exceptions import PackageNotFoundError # Specific exception for lo
 from docx.text.paragraph import Paragraph # For type hinting
 from docx.text.run import Run # For type hinting
 from docx.table import Table, _Row, _Cell # For type hinting
+from docxtpl import DocxTemplate
 
 # --- Project-Specific Imports ---
 import config
@@ -52,6 +53,7 @@ except ImportError as e:
 # ===========================================================
 CURRICULUM_MAP_REPORT_TEMPLATE_FILENAME = 'curriculum_map_report.docx'
 CURRICULUM_MAP_REPORT_TEMPLATE_PATH = os.path.join(config.TEMPLATE_FOLDER, CURRICULUM_MAP_REPORT_TEMPLATE_FILENAME)
+doc = DocxTemplate(CURRICULUM_MAP_REPORT_TEMPLATE_PATH)
 TEXT_PLACEHOLDERS = {
     '{{FACULTY}}': config.HEADER_CM_FACULTY, '{{NAME OF SCHOOL}}': config.HEADER_CM_SCHOOL,
     '{{NAME OF DEPARTMENT}}': config.HEADER_CM_DEPARTMENT, '{{NAME OF EVENT}}': config.HEADER_CM_EVENT_NAME,
@@ -64,7 +66,7 @@ TABLE_PLACEHOLDERS_MAP = {
     '{{attendance_table}}': 'attendance_csv',
 }
 IMAGE_PLACEHOLDERS_MAP = {
-    '{{ClubLogo}}': 'logo', '{{photographs_placeholder}}': 'photos',
+    '{{photographs_placeholder}}': 'photos',
     '{{brochure_placeholder}}': 'brochure', '{{news_placeholder}}': 'news',
 }
 REPORT_SECTIONS = [ # Titles MUST match BODY headings
@@ -236,23 +238,7 @@ def generate_report(data: dict, assets: dict) -> docx.Document | None:
     print("\n  [INFO] Phase 1: Processing Static Content...")
     replace_header_footer_placeholders(document, TEXT_PLACEHOLDERS, data)
     # Insert Header Logo
-    logo_placeholder_tag = '{{ClubLogo}}'; logo_asset_key = IMAGE_PLACEHOLDERS_MAP.get(logo_placeholder_tag)
-    if logo_asset_key:
-        logo_path = assets.get(logo_asset_key)
-        if logo_path and os.path.exists(logo_path):
-            logo_width = getattr(config, 'LOGO_WIDTH_INCHES', 1.0); inserted = False
-            for section in document.sections:
-                for header_part in [section.header, section.first_page_header, section.even_page_header]:
-                    if not header_part: continue
-                    logo_para = next((p for p in header_part.paragraphs if logo_placeholder_tag in p.text), None)
-                    if logo_para:
-                        try:
-                            replace_text_preserving_formatting(logo_para, logo_placeholder_tag, '')
-                            run = logo_para.add_run(); run.add_picture(logo_path, width=Inches(logo_width))
-                            print(f"    [SUCCESS] Inserted logo into header.")
-                            inserted = True; break
-                        except Exception as e_logo: print(f"    [ERROR] Failed inserting logo: {e_logo}")
-                if inserted: break
+    doc.replace_pic('pictureused','temp_files/logo.png')
 
     # Replace Page 1 Placeholders
     page1_phs_keys = ['{{FACULTY}}', '{{NAME OF SCHOOL}}', '{{NAME OF DEPARTMENT}}', '{{NAME OF EVENT}}', '{{Nature of Event}}', '{{Date of Event}}']
