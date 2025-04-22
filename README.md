@@ -6,8 +6,8 @@
 
 1.  **Clone the Repository:**
     ```bash
-    git clone <your-repository-url>
-    cd <repository-directory>
+    git clone https://github.com/WalkingDevFlag/R_K_Tailor.git
+    cd R_K_Tailor
     ```
 2.  **Create a Python Environment (Recommended):**
     ```bash
@@ -85,16 +85,6 @@ All required Python libraries are listed in `requirements.txt`. Key dependencies
 *   `PyMuPDF`: For extracting text/images from PDF files (Required for Summarizer).
 *   `transformers`, `torch`, `huggingface_hub`, `accelerate`: For the text summarization feature (Required for Summarizer).
 
-## Known Issues and Limitations
-
-*   **Empty Form Fields:** As observed, if a field in the Google Form intended for a placeholder (e.g., `{{SomeOptionalField}}`) is left empty in a submission, the generation script might not reliably remove the placeholder tag itself from the final document. While the code generally attempts to replace placeholders with the provided value (which would be an empty string for an empty field), some complex template structures or specific placeholder handling logic (especially in the Curriculum Map report's dynamic section management *before* cleanup) might result in the literal placeholder text remaining visible. It's recommended to review generated reports, especially when optional fields are omitted.
-*   **Formatting Preservation:** While `remedial_report.py` uses run-level replacement to preserve formatting better, other modules might use simpler paragraph-level replacement, potentially losing intricate formatting within a replaced placeholder. Template styles are the most reliable way to control formatting.
-*   **Summarizer Performance:** The text summarization model can be resource-intensive (RAM/VRAM) and time-consuming, especially for large documents or when running on CPU. Ensure your machine meets the requirements, or consider using a smaller model (configured in `report_summarizer.py`).
-*   **Complex Template Structures:** Very complex headers/footers or unusual document structures in templates might not be fully processed by all placeholder replacement logic.
-*   **Asset Download Failures:** Network issues or incorrect Google Drive sharing permissions can cause asset downloads to fail, leading to errors or missing content in the report.
-*   **Error Handling:** While basic error handling is present, some edge cases or API errors might halt processing for a specific row. The script attempts to continue with the next row.
-*   **API Quotas:** Heavy usage might hit Google API quotas. Monitor usage in the Google Cloud Console if processing large numbers of reports frequently.
-
 ## Troubleshooting
 
 *   **Authentication Errors / `token.json` issues:**
@@ -138,6 +128,11 @@ All required Python libraries are listed in `requirements.txt`. Key dependencies
 *   **`token.json`:** This file contains access and refresh tokens granting the script access to your Google account (within the requested scopes). While less sensitive than your primary password, it should also be kept secure and **not committed to version control** (add it to `.gitignore`).
 *   **Email Credentials:** Use an App Password if using Gmail with 2FA. Avoid using your main account password directly in the `.env` file if possible.
 *   **Scopes:** The script requests `readonly` access for Sheets and Drive (`config.SCOPES`). Avoid requesting broader permissions unless strictly necessary.
+
+## Known Issues
+
+*   **Empty Form Fields:** As observed, if a field in the Google Form intended for a placeholder (e.g., `{{SomeOptionalField}}`) is left empty in a submission, the generation script might not reliably remove the placeholder tag itself from the final document. While the code generally attempts to replace placeholders with the provided value (which would be an empty string for an empty field), some complex template structures or specific placeholder handling logic (especially in the Curriculum Map report's dynamic section management *before* cleanup) might result in the literal placeholder text remaining visible. It's recommended to review generated reports, especially when optional fields are omitted.
+
 
 ## Future Enhancements
 
