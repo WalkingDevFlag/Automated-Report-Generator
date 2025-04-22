@@ -1,4 +1,4 @@
-# Automated Report Generator (R_K_Tailor Project)
+# Automated Report Generator
 
 ## Overview
 
