@@ -93,20 +93,6 @@ All required Python libraries are listed in `requirements.txt`. Key dependencies
 *   **Complex Template Structures:** Very complex headers/footers or unusual document structures in templates might not be fully processed by all placeholder replacement logic.
 *   **Asset Download Failures:** Network issues or incorrect Google Drive sharing permissions can cause asset downloads to fail, leading to errors or missing content in the report.
 *   **Error Handling:** While basic error handling is present, some edge cases or API errors might halt processing for a specific row. The script attempts to continue with the next row.
-
-## Known Issues and Limitations
-
-*   **Empty Form Fields:** As observed, if a field in the Google Form intended for a placeholder (e.g., `{{SomeOptionalField}}`) is left empty in a submission, the generation script might not reliably remove the placeholder tag itself from the final document.
-    *   **Reason:** While the code generally attempts to replace placeholders with the provided value (which would be an empty string for an empty field), the logic for dynamically including/excluding sections (especially in the Curriculum Map report) or complex run-level replacements might sometimes miss removing the tag if no content is provided for that specific placeholder *before* the final cleanup/removal phases.
-    *   **Workaround/Mitigation:**
-        *   Review generated reports, particularly when optional fields are omitted.
-        *   For optional sections in the Curriculum Map report, ensure the logic correctly identifies the section as having no content *even if only the placeholder text exists*. The current implementation relies on associated `data_key` or `asset_key` values being present and non-empty.
-        *   Consider modifying the template directly to make optional sections easily identifiable or adding a post-processing step to scan the final document for any remaining `{{...}}` tags and remove them (though this is less ideal than preventing their inclusion).
-*   **Formatting Preservation:** While `remedial_report.py` uses run-level replacement to preserve formatting better, other modules might use simpler paragraph-level replacement, potentially losing intricate formatting within a replaced placeholder. Template styles are the most reliable way to control formatting.
-*   **Summarizer Performance:** The text summarization model can be resource-intensive (RAM/VRAM) and time-consuming, especially for large documents or when running on CPU. Ensure your machine meets the requirements, or consider using a smaller model (configured in `report_summarizer.py`). Check the `FORCE_CPU` flag in `report_summarizer.py` if GPU issues arise.
-*   **Complex Template Structures:** Very complex headers/footers or unusual document structures in templates might not be fully processed by all placeholder replacement logic. Test thoroughly with your specific templates.
-*   **Asset Download Failures:** Network issues or incorrect Google Drive sharing permissions (ensure the file is accessible to the account running the script, often via "Anyone with the link can view") can cause asset downloads to fail, leading to errors or missing content in the report. Check sharing settings on Drive if downloads fail with 403 errors.
-*   **Error Handling:** While basic error handling is present, some edge cases or API errors might halt processing for a specific row. The script attempts to continue with the next row. Check console logs for details on failed rows.
 *   **API Quotas:** Heavy usage might hit Google API quotas. Monitor usage in the Google Cloud Console if processing large numbers of reports frequently.
 
 ## Troubleshooting
