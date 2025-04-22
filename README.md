@@ -132,16 +132,3 @@ All required Python libraries are listed in `requirements.txt`. Key dependencies
 ## Known Issues
 
 *   **Empty Form Fields:** As observed, if a field in the Google Form intended for a placeholder (e.g., `{{SomeOptionalField}}`) is left empty in a submission, the generation script might not reliably remove the placeholder tag itself from the final document. While the code generally attempts to replace placeholders with the provided value (which would be an empty string for an empty field), some complex template structures or specific placeholder handling logic (especially in the Curriculum Map report's dynamic section management *before* cleanup) might result in the literal placeholder text remaining visible. It's recommended to review generated reports, especially when optional fields are omitted.
-
-
-## Future Enhancements
-
-*   **Improved Placeholder Handling:** Implement a more robust post-processing step to reliably remove any leftover `{{...}}` tags from the final generated DOCX, addressing the known issue with empty optional fields.
-*   **Web Interface:** Create a simple web front-end (e.g., using Flask or Django) to trigger the report generation process, view status, and download reports instead of relying solely on script execution and email.
-*   **Report Status Tracking:** Update the Google Sheet itself with the processing status (e.g., "Generated", "Emailed", "Error") for each row.
-*   **More Report Types:** Add modules for other report formats as needed.
-*   **Advanced Template Logic:** Explore using libraries like `jinja2` within `python-docx` (via `docx-mailmerge` or similar packages) for more complex conditional logic directly within the template, potentially simplifying Python code.
-*   **PDF Output:** Add an option to automatically convert the final DOCX report to PDF using tools like `LibreOffice` (requires external dependency) or cloud services.
-*   **Unit/Integration Tests:** Develop tests to verify the functionality of individual modules and the overall workflow.
-*   **Cloud Deployment:** Package the application (e.g., using Docker) for deployment to a cloud platform (like Google Cloud Run or AWS Lambda) for scheduled execution or execution via API calls.
-*   **User Feedback:** Allow users to provide feedback directly on the generated reports (perhaps via a link in the email).
