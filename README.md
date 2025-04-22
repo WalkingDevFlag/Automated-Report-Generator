@@ -1,134 +1,156 @@
-# Automated Report Generator
+# Automated Report Generator from Google Forms
 
-## Overview
+[![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) <!-- Optional License Badge -->
+
+This project provides a robust solution for automatically generating formatted Microsoft Word (.docx) reports based on user submissions via a Google Form. It retrieves data from a linked Google Sheet, populates predefined templates, handles image uploads, converts image formats, and emails the final report.
+
+## Features
+
+*   **Google Form/Sheet Integration:** Processes responses collected in a Google Sheet.
+*   **Multi-Template Support:** Handles different report types selected by the user in the form (easily extensible).
+*   **Dynamic Content Filling:** Populates placeholders (`{{placeholder}}`) in `.docx` templates with corresponding sheet data.
+*   **Image Handling:** Downloads images uploaded via the form from Google Drive using API calls.
+*   **Image Conversion:** Includes capability (using Pillow) to convert common unsupported formats (like WEBP) to PNG for reliable insertion into `.docx` files.
+*   **Automated Emailing:** Sends the generated report as an attachment to a specified recipient email address using SMTP.
+*   **Modular & Configurable:**
+    *   Separates concerns into distinct Python modules (`main`, `config`, `email_sender`, report-specific modules like `event_report`).
+    *   Uses a `.env` file for secure storage of sensitive credentials (API keys, passwords).
+    *   Centralizes configuration (sheet ID, range, headers, paths) in `config.py`.
+*   **Descriptive Filenaming:** Generates meaningful report filenames using key data like report title, date, and submitter name.
+*   **Conditional Cleanup:** Automatically removes temporary image files only after the corresponding report has been successfully generated and emailed.
+
+## Project Structure
+
+```
+.
+├── .env                     # Store sensitive credentials here (Create this file)
+├── .gitignore               # Specifies intentionally untracked files
+├── config.py                # Loads .env, defines configurations & sheet headers
+├── email_sender.py          # Module for sending emails via SMTP
+├── event_report.py          # Module for generating 'Event Report' type
+├── main.py                  # Main script orchestrating the workflow
+├── requirements.txt         # Python package dependencies
+├── template/
+│   └── event_report.docx    # Example Word template (Add others here)
+├── credentials.json         # Google OAuth 2.0 Client ID file (From GCP)
+├── token.json               # Google API token (Generated on first run)
+├── generated_reports/       # Default output folder for generated reports
+└── temp_images/             # Default folder for temporary image downloads
+```
 
 ## Setup and Installation
 
-1.  **Clone the Repository:**
+1.  **Prerequisites:**
+    *   Python 3.7+
+    *   Google Account
+    *   Google Cloud Platform (GCP) Project
+
+2.  **Clone Repository:**
     ```bash
     git clone https://github.com/WalkingDevFlag/Automated-Report-Generator.git
     cd Automated-Report-Generator
     ```
-2.  **Create a Python Environment (Recommended):**
+
+3.  **Create Virtual Environment (Recommended):**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+    # Activate:
+    # Windows: .\venv\Scripts\activate
+    # macOS/Linux: source venv/bin/activate
     ```
-3.  **Install Dependencies:**
+
+4.  **Install Dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
-4.  **Google Cloud Platform Setup:**
-    *   Create a new project on the [Google Cloud Console](https://console.cloud.google.com/).
-    *   **Enable APIs:** Enable the "Google Drive API" and "Google Sheets API" for your project.
-    *   **Create OAuth 2.0 Credentials:**
-        *   Go to "APIs & Services" -> "Credentials".
-        *   Click "Create Credentials" -> "OAuth client ID".
-        *   Select "Desktop app" as the Application type.
+
+5.  **Google Cloud Platform Setup:**
+    *   Go to your GCP Console.
+    *   Create a new project or select an existing one.
+    *   **Enable APIs:** Enable "Google Sheets API" and "Google Drive API".
+    *   **Create OAuth Credentials:**
+        *   Navigate to "APIs & Services" > "Credentials".
+        *   Click "+ CREATE CREDENTIALS" > "OAuth client ID".
+        *   Select Application type: "Desktop app".
         *   Give it a name (e.g., "Report Generator Script").
         *   Click "Create".
-    *   **Download Credentials:** Download the JSON file containing your client ID and secret. Rename this file to `credentials.json` and place it in the project's root directory. **Do not commit this file to version control.**
-5.  **Create `.env` File:**
-    *   Create a file named `.env` in the project's root directory.
-    *   Add the following variables, replacing the placeholder values:
+        *   **Download the JSON file.** Rename it to `credentials.json` and place it in the project's root directory.
+    *   **Configure OAuth Consent Screen:**
+        *   Navigate to "APIs & Services" > "OAuth consent screen".
+        *   Choose "External" user type (unless restricted to a Google Workspace).
+        *   Fill in required fields (App name, User support email, Developer contact).
+        *   **IMPORTANT:** Keep the "Publishing status" as **"Testing"** initially. While in testing mode, you **must add the Google account(s) that will run the script** under the "Test users" section. Failure to do so will result in authentication errors ("Access blocked").
+
+6.  **Google Form & Sheet Setup:**
+    *   Create your Google Form. Include questions for:
+        *   Submitter's Name
+        *   Recipient Email Address
+        *   Report Template Selection (Dropdown/Multiple Choice)
+        *   Template-specific data fields
+        *   File Upload fields for necessary images.
+    *   Link the form responses to a new Google Sheet.
+    *   **Verify Headers:** Ensure the column headers in the first row of the response sheet **exactly match** the `HEADER_` constants defined in `config.py` (case and spacing matter!).
+    *   Note the **Spreadsheet ID** from the Sheet URL.
+    *   Note the **Sheet Tab Name** (e.g., `Form Responses 1`).
+
+7.  **Word Template(s) (`template/` folder):**
+    *   Create/edit your `.docx` template files (e.g., `event_report.docx`).
+    *   Use placeholders like `{{PlaceholderName}}` for dynamic text. These **must exactly match** the keys in the `_PLACEHOLDERS` dictionary in the corresponding report module (e.g., `event_report.py`).
+    *   Use specific tags like `{{EventBrochure}}` (verify exact text including spaces!) where images should be inserted. These **must exactly match** the `IMAGE_PLACEHOLDER_TAG_` constants in the report module.
+    *   Place templates in the `template/` directory.
+
+8.  **Create and Configure `.env` File:**
+    *   Create a file named `.env` in the project root.
+    *   Add and configure the following variables:
         ```dotenv
-        # .env file
-        SPREADSHEET_ID=YOUR_GOOGLE_SHEET_ID_HERE
-        EMAIL_SENDER=your_sender_email@gmail.com
-        EMAIL_PASSWORD=your_gmail_app_password_here
+        SPREADSHEET_ID="YOUR_GOOGLE_SHEET_ID" # Get from Sheet URL
+        EMAIL_SENDER="your_sending_email@example.com"
+        EMAIL_PASSWORD="YOUR_APP_PASSWORD_OR_EMAIL_PASSWORD" # Use Gmail App Password!
         ```
-    *   `SPREADSHEET_ID`: The ID of the Google Sheet collecting the form responses (from the sheet URL).
-    *   `EMAIL_SENDER`: The Gmail address the reports will be sent *from*.
-    *   `EMAIL_PASSWORD`: **Important:** If using Gmail and you have 2-Factor Authentication enabled, you **must** generate an "App Password" for this script. Do not use your regular Gmail password here. If 2FA is off, your regular password might work, but App Passwords are more secure.
+    *   Add `.env` to your `.gitignore` file if it's not already there.
 
-## Configuration
+9.  **Configure `config.py`:**
+    *   Double-check `RANGE_NAME` to match your response sheet tab name and column range (e.g., `Form Responses 1!A:M`).
+    *   Verify all `HEADER_` constants match your sheet headers exactly.
+    *   Adjust `SMTP_SERVER` / `SMTP_PORT` if not using Gmail default SSL.
 
-Besides the `.env` file, review `config.py` for other settings:
+10. **Configure Report Module(s) (e.g., `event_report.py`):**
+    *   Verify `_PLACEHOLDERS` dictionary keys match template placeholders.
+    *   Verify `IMAGE_PLACEHOLDER_TAG_` constants match template image tags *exactly*.
 
-*   **Google Sheet:**
-    *   `SHEET_NAME`: Ensure this matches the name of the sheet tab containing responses.
-    *   `LAST_COLUMN`: Adjust if your sheet uses more columns than `AZ`.
-    *   `RANGE_NAME`: Automatically constructed from `SHEET_NAME` and `LAST_COLUMN`.
-    *   `HEADER_...`: **Crucially important!** These constants *must exactly match* the column headers in the *first row* of your Google Sheet. Update them in `config.py` if your form/sheet headers are different.
-*   **File Paths:** `OUTPUT_FOLDER`, `TEMP_FOLDER`, `TEMPLATE_FOLDER` can be adjusted if needed.
-*   **Email:** `SMTP_SERVER`, `SMTP_PORT` might need changing if not using Gmail.
-*   **Report Modules:** Specific configurations (template filenames, placeholder names, image sizes, summarizer model) are within each report module file (e.g., `curriculum_map_report.py`).
-*   **Templates:** Ensure your `.docx` files in the `template/` directory contain the correct placeholder text (`{{PlaceholderName}}`, `{{table1}}`, etc.) that corresponds to the mappings in `config.py` and the logic within the report modules. The provided `curriculum_map_report.docx` serves as the template for that specific report type.
+## How to Run
 
-## Usage
-
-1.  Ensure you have completed the Setup and Configuration steps.
-2.  Activate your Python environment (if used).
-3.  Run the main script from the project's root directory:
+1.  **Activate Virtual Environment** (if applicable).
+2.  **Navigate** to the project directory in your terminal.
+3.  **Run the main script:**
     ```bash
     python main.py
     ```
-4.  **First Run:** The script will likely open a web browser window asking you to log in to your Google account and grant the script permission to access your Google Sheets and Drive data. Follow the prompts to authorize access. After successful authorization, a `token.json` file will be created, and the script will proceed. Subsequent runs should use the `token.json` file automatically unless it expires or is deleted.
-5.  The script will then process each row in the Google Sheet, generating and emailing reports as configured. Check the console output for progress and any errors. Generated reports will appear in the `generated_reports` folder.
+4.  **First Run Only:** A browser window will open for Google Authentication. Log in with an authorized Google account (one listed as a Test User if applicable) and grant permissions. A `token.json` file will be created for subsequent runs.
+5.  **Monitor Output:** Check the console for progress, generated report paths, email status, and any errors. Reports are saved in `generated_reports/`.
 
-## Supported Report Types
+## Adding New Report Templates
 
-*   **Event Report (`event_report.py`):** Simple report using text and image placeholders.
-*   **Remedial Class Report (`remedial_report.py`):** Inserts data into text placeholders and creates tables from linked CSV files (`{{table1}}`, `{{table2}}`, `{{table3}}`). Uses run-level text replacement for better formatting preservation.
-*   **Curriculum Map Report (`curriculum_map_report.py`):** More complex report with dynamic section inclusion/exclusion based on provided data (text, images, CSVs). It automatically renumbers sections and the table of contents, inserts tables and images, and enforces font styles. Requires a specific template structure (like the provided `curriculum_map_report.docx`).
-*   **Summarizer Report (`report_summarizer.py`):** Takes a linked PDF or DOCX file, extracts text and images, uses a Hugging Face transformer model to summarize the text, and creates a *new* DOCX file containing the summary and images. Requires `PyMuPDF`, `transformers`, `torch`, `accelerate`, and `Pillow`.
+1.  **Create `.docx` Template:** Design the new template (e.g., `curriculum_map.docx`) with placeholders/tags and save it in `template/`.
+2.  **Create Python Module:** Create `curriculum_map.py`.
+    *   Define `TEMPLATE_FILENAME`, `_PLACEHOLDERS` mapping (using headers from `config.py`), and `IMAGE_PLACEHOLDER_TAG_` constants specific to this template.
+    *   Implement a `generate_report(data, image1_local_path=None, image2_local_path=None)` function.
+3.  **Update `config.py`:**
+    *   Add any new `HEADER_` constants for columns unique to this template.
+    *   Ensure `RANGE_NAME` covers these columns.
+4.  **Update `main.py`:**
+    *   `import curriculum_map`
+    *   Add an `elif processed_template_choice == 'curriculum map':` block in the "Select Report Module" section to set `report_module = curriculum_map` and assign relevant `image_header_` variables from `config.py`.
 
-## Dependencies
+## Troubleshooting Common Issues
 
-All required Python libraries are listed in `requirements.txt`. Key dependencies include:
-
-*   `google-api-python-client`, `google-auth-httplib2`, `google-auth-oauthlib`: For Google API interaction.
-*   `python-docx`: For reading and writing DOCX files.
-*   `docxtpl`: Used by Curriculum Map report for some template operations (like image replacement).
-*   `python-dotenv`: For loading environment variables.
-*   `Pillow`: For image processing and conversion (Optional but recommended).
-*   `PyMuPDF`: For extracting text/images from PDF files (Required for Summarizer).
-*   `transformers`, `torch`, `huggingface_hub`, `accelerate`: For the text summarization feature (Required for Summarizer).
-
-## Troubleshooting
-
-*   **Authentication Errors / `token.json` issues:**
-    *   **Problem:** Script fails during authentication, browser doesn't open, or `token.json` seems corrupted.
-    *   **Solution:** Delete the `token.json` file and re-run `main.py`. This will force the OAuth 2.0 flow again. Ensure `credentials.json` is present and correct. Verify the redirect URIs in your Google Cloud Console credential settings match what the `google-auth-oauthlib` expects (usually `http://localhost:<port>`).
-*   **`ModuleNotFoundError`:**
-    *   **Problem:** Script fails immediately, reporting a missing module.
-    *   **Solution:** Ensure you have activated your virtual environment (if used) and successfully installed all packages using `pip install -r requirements.txt`.
-*   **Sheet Data Not Found / Incorrect Headers:**
-    *   **Problem:** Script reports "No data found" or fails with errors related to missing keys/headers.
-    *   **Solution:** Double-check `SPREADSHEET_ID`, `SHEET_NAME`, and `RANGE_NAME` in `config.py`. **Crucially**, verify that the `HEADER_...` constants in `config.py` *exactly* match the column headers in the first row of your Google Sheet (case-sensitive, including spaces).
-*   **File Download Errors (403 Forbidden):**
-    *   **Problem:** Script fails to download a file from Google Drive, reporting a 403 error.
-    *   **Solution:** The account used to authenticate the script does not have permission to access the file. Ensure the file(s) linked in the Google Form response are shared appropriately (e.g., "Anyone with the link can view" or shared directly with the email account used for authentication).
-*   **File Download Errors (404 Not Found):**
-    *   **Problem:** Script fails to download a file, reporting a 404 error.
-    *   **Solution:** The link in the Google Form response is likely incorrect, or the file has been deleted. Verify the link and the existence of the file on Google Drive. Check if `extract_drive_id` is correctly parsing the ID from the URL format used.
-*   **Image/Table Insertion Issues:**
-    *   **Problem:** Images or tables are missing, appear in the wrong place, or placeholder text (`{{table1}}`, `{{EventBrochure}}`) remains.
-    *   **Solution:**
-        *   Verify the placeholder tags in your `.docx` template *exactly* match the tags defined in the relevant report module config (e.g., `event_report.py`, `remedial_report.py`).
-        *   For table insertion in Remedial/Curriculum Map reports, ensure the placeholder tag is in its *own separate paragraph* immediately following any related heading.
-        *   Ensure the CSV/Image files were downloaded successfully to `temp_files`. Check console logs for download errors.
-        *   For images, ensure Pillow is installed (`pip install Pillow`) if using formats that need conversion (like WEBP).
-*   **Email Sending Fails:**
-    *   **Problem:** Reports generate but are not emailed. Errors related to SMTP authentication or connection appear.
-    *   **Solution:**
-        *   Verify `EMAIL_SENDER` and `EMAIL_PASSWORD` in your `.env` file are correct.
-        *   If using Gmail with 2FA, ensure you are using a generated **App Password**, not your regular account password.
-        *   Check Gmail security settings – less secure app access might need to be enabled (though App Passwords are the preferred method).
-        *   Verify `SMTP_SERVER` and `SMTP_PORT` in `config.py` are correct for your provider (Gmail defaults are usually `smtp.gmail.com` and `465` for SSL or `587` for TLS). Ensure `config.EMAIL_USE_SSL` matches the port choice.
-        *   Check network/firewall settings that might block SMTP connections.
-*   **Summarizer Errors (CUDA Out of Memory, etc.):**
-    *   **Problem:** Summarizer report fails during the `summarize_text` step.
-    *   **Solution:** See suggestions in `report_summarizer.py`'s `summarize_text` function docstring/comments. Common fixes include: trying a smaller model (edit `SUMMARIZER_MODEL`), reducing `MANUAL_TRUNCATE_TOKEN_LIMIT`, forcing CPU use (`FORCE_CPU = True`), or ensuring sufficient system RAM/VRAM and compatible ML library versions (`transformers`, `torch`, `accelerate`).
-
-## Security Considerations
-
-*   **`credentials.json`:** This file contains your OAuth 2.0 client secrets. **Keep it confidential.** Do not commit it to version control (add it to your `.gitignore` file).
-*   **`.env` File:** This file contains your spreadsheet ID and email credentials. **Keep it confidential.** Do not commit it to version control (add it to your `.gitignore` file).
-*   **`token.json`:** This file contains access and refresh tokens granting the script access to your Google account (within the requested scopes). While less sensitive than your primary password, it should also be kept secure and **not committed to version control** (add it to `.gitignore`).
-*   **Email Credentials:** Use an App Password if using Gmail with 2FA. Avoid using your main account password directly in the `.env` file if possible.
-*   **Scopes:** The script requests `readonly` access for Sheets and Drive (`config.SCOPES`). Avoid requesting broader permissions unless strictly necessary.
-
-## Known Issues
-
-*   **Empty Form Fields:** As observed, if a field in the Google Form intended for a placeholder (e.g., `{{SomeOptionalField}}`) is left empty in a submission, the generation script might not reliably remove the placeholder tag itself from the final document. While the code generally attempts to replace placeholders with the provided value (which would be an empty string for an empty field), some complex template structures or specific placeholder handling logic (especially in the Curriculum Map report's dynamic section management *before* cleanup) might result in the literal placeholder text remaining visible. It's recommended to review generated reports, especially when optional fields are omitted.
+*   **Authentication Errors (`access_denied`, `invalid_grant`):** Ensure you are using an authorized Test User (if app is "Testing"). Delete `token.json` and re-run `main.py` to re-authenticate. Check `credentials.json`.
+*   **`SMTP Authentication failed`:** Wrong `EMAIL_PASSWORD` in `.env`. **Use a Gmail App Password** for 2FA accounts. Check `EMAIL_SENDER`. Check Google security alerts for blocked sign-ins.
+*   **`Column header '...' not found`:** Header in `config.py` doesn't match the sheet header exactly. Check spelling, case, and spaces.
+*   **Placeholders Not Replaced:** Mismatch between `{{placeholder}}` in `.docx` and keys in the report module's `_PLACEHOLDERS` dictionary. Check exact text.
+*   **Images Not Inserted / Errors:**
+    *   Mismatch between image tags (`{{...}}`) in `.docx` and `IMAGE_PLACEHOLDER_TAG_` constants in the report module. Check exact text.
+    *   Download errors (check console logs for permissions/404s).
+    *   Unsupported image format errors (ensure Pillow is installed via `requirements.txt`; check conversion logs).
+*   **`FileNotFoundError` for Template:** Check `TEMPLATE_FILENAME` in the report module and ensure the file exists in the `template/` folder.
