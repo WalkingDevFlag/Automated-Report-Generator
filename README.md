@@ -7,7 +7,7 @@
 1.  **Clone the Repository:**
     ```bash
     git clone https://github.com/WalkingDevFlag/Automated-Report-Generator.git
-    cd R_K_Tailor
+    cd Automated-Report-Generator
     ```
 2.  **Create a Python Environment (Recommended):**
     ```bash
