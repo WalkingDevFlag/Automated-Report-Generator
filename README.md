@@ -6,7 +6,7 @@
 
 1.  **Clone the Repository:**
     ```bash
-    git clone https://github.com/WalkingDevFlag/R_K_Tailor.git
+    git clone https://github.com/WalkingDevFlag/Automated-Report-Generator.git
     cd R_K_Tailor
     ```
 2.  **Create a Python Environment (Recommended):**
